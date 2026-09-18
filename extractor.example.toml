@@ -1,0 +1,20 @@
+# Default paired phone for extraction; replace this example with your own.
+account = "5511900000001"
+# Persistence backend: sql, jsonl or memory.
+store = "sql"
+# Terminal output: panel, json or log. Panel and JSON require the rich extra.
+view = "panel"
+# New arrivals are dropped and logged when this message buffer is full.
+buffer_size = 10000
+# Keep the account placeholder to write separate JSON Lines files.
+jsonl_path = "messages_{account}.jsonl"
+
+# Used by accounts that do not define their own watchlist. Empty arrays accept all.
+[watchlist]
+chats = []
+senders = []
+
+# This account replaces the global watchlist; matching either array accepts a message.
+[accounts."5511900000001".watchlist]
+chats = ["120363000000000001@g.us"]
+senders = ["5511900000002"]

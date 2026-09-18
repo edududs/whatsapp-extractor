@@ -12,6 +12,7 @@ wheels/
 # Secrets and runtime data: the neonize session is a WhatsApp credential
 .env
 /session.db*
+/extractor.toml
 *.db
 *.db-*
 *.jsonl
