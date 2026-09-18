@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import io
 import sys
 from pathlib import Path
 from typing import Annotated, NoReturn
@@ -16,6 +17,16 @@ from .adapters.toml_config import GLOBAL, TomlConfig
 from .settings import Settings
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
+
+
+@app.callback()
+def tolerate_legacy_consoles() -> None:
+    """Group and contact names carry emoji; a console that cannot draw them gets `?`."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(errors="replace")
+
+
 account_app = typer.Typer(no_args_is_help=True, help="The account `run` uses by default.")
 watch_app = typer.Typer(no_args_is_help=True, help="What each account extracts.")
 app.add_typer(account_app, name="account")
@@ -46,6 +57,18 @@ def accounts(config: ConfigOption = None) -> None:
     for paired_account in paired:
         marker = "*" if paired_account.phone == settings.account else " "
         typer.echo(f"{marker} {paired_account.phone}  {paired_account.name}")
+
+
+@app.command()
+def groups(account: AccountOption = None, config: ConfigOption = None) -> None:
+    """List the groups an account belongs to, to pick what to watch."""
+    settings = Settings.load(config, **({"account": account} if account else {}))
+    chosen = choose_account(settings)
+    bootstrap.configure_logging()
+    for group in sorted(
+        asyncio.run(bootstrap.groups_of(settings, chosen.phone)), key=lambda g: g.name
+    ):
+        typer.echo(f"{group.jid}  {group.name}  ({group.participants})")
 
 
 @app.command()

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
 from typing import TYPE_CHECKING
@@ -15,6 +14,7 @@ from .adapters.jsonl_store import JsonlMessageStore
 from .adapters.log_handler import log_message_extracted
 from .adapters.memory_store import InMemoryMessageStore
 from .adapters.neonize_accounts import Account, account_of, find_account
+from .adapters.neonize_session import Group, connected, joined_groups
 from .adapters.neonize_source import NeonizeSource
 from .adapters.sql_store import SqlMessageStore, engine_for, migrate, schema_for
 from .application import (
@@ -63,12 +63,22 @@ async def run(
         await extract(source, accepts, target, bus)
 
 
-def neonize_source(settings: Settings, phone: str) -> NeonizeSource:
+def neonize_client(settings: Settings, phone: str) -> NewAClient:
     account = find_account(settings.database, phone)
     if account is None:
         raise AccountNotPairedError(phone)
-    client = NewAClient(settings.database, jid=account.device)
-    return NeonizeSource(client, settings.buffer_size)
+    return NewAClient(settings.database, jid=account.device)
+
+
+def neonize_source(settings: Settings, phone: str) -> NeonizeSource:
+    return NeonizeSource(neonize_client(settings, phone), settings.buffer_size)
+
+
+async def groups_of(settings: Settings, phone: str) -> list[Group]:
+    """Connect briefly as the account and list the groups it belongs to."""
+    client = neonize_client(settings, phone)
+    async with connected(client):
+        return await joined_groups(client)
 
 
 @contextlib.asynccontextmanager
@@ -86,7 +96,7 @@ async def open_writer(
             yield JsonlMessageStore(settings.jsonl_path_for(account))
         case StoreKind.SQL:
             schema = schema_for(account)
-            engine = engine_for(settings.database, schema)
+            engine = engine_for(settings.message_database, schema)
             try:
                 await migrate(engine, schema)
                 yield SqlMessageStore(engine)
@@ -96,7 +106,7 @@ async def open_writer(
 
 async def migrate_account(settings: Settings, account: str) -> None:
     schema = schema_for(account)
-    engine = engine_for(settings.database, schema)
+    engine = engine_for(settings.message_database, schema)
     try:
         await migrate(engine, schema)
     finally:
@@ -119,21 +129,8 @@ class Pairing:
         return account_of(me) if me is not None else None
 
     async def run(self) -> None:
-        synced = asyncio.Event()
-
-        async def on_synced(_: NewAClient, __: OfflineSyncCompletedEv) -> None:
-            synced.set()
-
-        self._client.event(OfflineSyncCompletedEv)(on_synced)
-        connection = await self._client.connect()
-        waiter = asyncio.ensure_future(synced.wait())
-        try:
-            await asyncio.wait({waiter, connection}, return_when=asyncio.FIRST_COMPLETED)
-            if connection.done():
-                connection.result()  # surfaces the connection error, if any
-        finally:
-            waiter.cancel()
-            connection.cancel()  # tells neonize to stop its worker thread
+        async with connected(self._client, until=OfflineSyncCompletedEv):
+            pass
 
 
 def message_view(view: ViewKind) -> EventHandler[MessageExtracted]:

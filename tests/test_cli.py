@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from whatsapp_extractor import cli
 from whatsapp_extractor.adapters.neonize_accounts import Account
+from whatsapp_extractor.adapters.neonize_session import Group
 from whatsapp_extractor.settings import Settings
 
 if TYPE_CHECKING:
@@ -117,3 +118,22 @@ def test_run_refuses_an_unpaired_account(monkeypatch: pytest.MonkeyPatch) -> Non
     result = runner.invoke(cli.app, ["run", "--account", "5511900000009"])
     assert result.exit_code == 1
     assert "not paired" in result.output
+
+
+def test_groups_lists_name_and_size_sorted_by_name(
+    config: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config.write_text('account = "5511900000001"\n', encoding="utf-8")
+    monkeypatch.setattr(cli, "list_accounts", paired("5511900000001"))
+
+    async def groups_of(_: Settings, __: str) -> list[Group]:
+        return [
+            Group(jid="2@g.us", name="Zebra", participants=2),
+            Group(jid="1@g.us", name="Alpha", participants=5),
+        ]
+
+    monkeypatch.setattr(cli.bootstrap, "groups_of", groups_of)
+    result = runner.invoke(cli.app, ["groups"])
+    assert result.exit_code == 0
+    assert result.output.index("Alpha") < result.output.index("Zebra")
+    assert "1@g.us  Alpha  (5)" in result.output
