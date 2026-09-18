@@ -25,7 +25,7 @@ from .application import (
     MessageWriter,
     extract,
 )
-from .domain import MessageExtracted
+from .domain import MessageExtracted, Watchlist
 from .settings import Settings, StoreKind, ViewKind
 
 if TYPE_CHECKING:
@@ -58,9 +58,22 @@ async def run(
     for handler in (message_view(settings.view), *handlers):
         bus.subscribe(MessageExtracted, handler)
     source = source or neonize_source(settings, settings.account)
-    accepts = accepts or settings.watchlist_for(settings.account).matches
+    if accepts is None:
+        watchlist = settings.watchlist_for(settings.account)
+        accepts = watchlist.matches
+        log.info("account %s: %s", settings.account, describe(watchlist))
     async with open_writer(settings, settings.account, writer) as target:
         await extract(source, accepts, target, bus)
+
+
+def describe(watchlist: Watchlist) -> str:
+    """What the run will let through, so an empty screen is never a mystery."""
+    if not watchlist.chats and not watchlist.senders:
+        return "watching every chat and sender"
+    return (
+        f"watching {len(watchlist.chats)} chat(s) {sorted(watchlist.chats)} "
+        f"and {len(watchlist.senders)} sender(s) {sorted(watchlist.senders)}"
+    )
 
 
 def neonize_client(settings: Settings, phone: str) -> NewAClient:

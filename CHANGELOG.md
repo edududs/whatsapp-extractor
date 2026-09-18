@@ -7,6 +7,10 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- `run` logs the effective watchlist when it starts.
+
 ## [0.2.0] - 2026-09-18
 
 ### Added
