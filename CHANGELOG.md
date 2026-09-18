@@ -7,6 +7,18 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-18
+
+### Added
+
+- `groups` command listing the address, name and member count of every group an account belongs to.
+- `EXTRACTOR_MESSAGES_DATABASE` to keep the per-account message schemas apart from the session database.
+- Short-lived connection helper shared by pairing and group listing.
+
+### Changed
+
+- CLI output replaces characters a console cannot display instead of failing.
+
 ## [0.1.0] - 2026-09-17
 
 ### Added
@@ -26,5 +38,6 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Domain, adapter, extraction and architecture tests with strict linting and type checks.
 - Ubuntu and Windows continuous integration.
 
-[Unreleased]: https://github.com/edududs/whatsapp-extractor/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/edududs/whatsapp-extractor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/edududs/whatsapp-extractor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/edududs/whatsapp-extractor/tree/v0.1.0

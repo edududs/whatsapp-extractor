@@ -11,7 +11,7 @@ The domain is specific to WhatsApp: Jid, ChatKind and related models describe Wh
 Python 3.13 or later is required for asyncio.Queue.shutdown. Development uses uv. The package is not published on PyPI; install the tagged release from Git:
 
 ```sh
-uv add "whatsapp-extractor[rich] @ git+https://github.com/edududs/whatsapp-extractor@v0.1.0"
+uv add "whatsapp-extractor[rich] @ git+https://github.com/edududs/whatsapp-extractor@v0.2.0"
 ```
 
 Optional extras:
@@ -29,6 +29,7 @@ uv sync --all-extras
 cp .env.example .env
 uv run whatsapp-extractor pair
 uv run whatsapp-extractor account use 5511900000001
+uv run whatsapp-extractor groups
 uv run whatsapp-extractor watch add 120363000000000001@g.us
 uv run whatsapp-extractor run
 ```
@@ -39,7 +40,7 @@ During pairing, neonize prints a QR code. Scan it from WhatsApp's **Linked devic
 
 For an existing pairing, skip `pair` and use `accounts` to find its phone. The configuration file need not exist: commands that edit it create it. See [extractor.example.toml](extractor.example.toml) for the full structure.
 
-With both watchlist arrays empty, every message is accepted. This can be used to discover group JIDs before adding a watchlist.
+`groups` connects briefly as the selected account, prints the address, name and size of every group it belongs to, and disconnects. Copy the address of a group into `watch add`. With both watchlist arrays empty, every message is accepted, which also reveals the addresses of direct chats and other senders.
 
 
 ## Configuration
@@ -80,6 +81,7 @@ A message is accepted when its chat **or** sender matches. Two empty arrays acce
 | Environment setting | Default | Meaning |
 | --- | --- | --- |
 | `EXTRACTOR_DATABASE` | `session.db` | SQLite session file or PostgreSQL DSN. Contains WhatsApp credentials: never commit or share it. |
+| `EXTRACTOR_MESSAGES_DATABASE` | Unset | Separate SQLite file or PostgreSQL DSN for the `wa_<phone>` message schemas. Blank or absent means the session database. |
 | `EXTRACTOR_ACCOUNT` | Unset | Default phone override for unattended services. A blank assignment clears the TOML default; omit the variable to use the TOML account. |
 | `EXTRACTOR_CONFIG` | `extractor.toml` | Configuration file path, accepted in the environment or .env. CLI edits use this same resolved path. |
 
@@ -93,6 +95,7 @@ Each command accepts `--config/-c FILE`. Account options use `--account/-a PHONE
 | --- | --- | --- |
 | `run [--account PHONE]` | Extract messages for one paired account. | No |
 | `accounts` | List paired phones and names; `*` marks the configured default. | No |
+| `groups [--account PHONE]` | Connect briefly and list the groups the account belongs to: address, name and member count. | No |
 | `pair` | Pair another phone and record its account after linking. | Yes |
 | `migrate [--account PHONE]` | Upgrade one account's message schema. | No |
 | `migrate --all` | Upgrade all paired accounts. | No |
@@ -101,7 +104,7 @@ Each command accepts `--config/-c FILE`. Account options use `--account/-a PHONE
 | `watch remove ENTRY [--sender] [--account PHONE \| --global]` | Remove a chat or sender from the selected scope. | Yes |
 | `watch list [--account PHONE]` | Show the effective account watchlist, or the global list when no account is configured. | No |
 
-For `run`, an explicit or configured phone must be paired. Without one, the CLI selects the only paired account. If several exist, an interactive terminal prompts for a numbered choice; without a terminal it exits with code 1 and lists the available phones. This choice is not saved.
+For `run`, `groups` and `migrate`, an explicit or configured phone must be paired. Without one, the CLI selects the only paired account. If several exist, an interactive terminal prompts for a numbered choice; without a terminal it exits with code 1 and lists the available phones. This choice is not saved.
 
 Watch edits without `--account` use the configured default. Without a default, supply `--account` or `--global`. Unlike edits, `watch list` can show the global list without a configured account.
 
@@ -246,6 +249,8 @@ Each SQL account owns `wa_<phone>`:
 
 engine_for(database, schema) uses SQLAlchemy's schema_translate_map for both backends. PostgreSQL DSNs beginning with `postgres://` or `postgresql://` become `postgresql+asyncpg` URLs. SQLite uses `sqlite+aiosqlite`, a 30-second lock timeout and ATTACH DATABASE for each connection. Install the postgres extra for PostgreSQL.
 
+Set `EXTRACTOR_MESSAGES_DATABASE` to keep the message schemas in a different database from the session. A typical layout keeps the session in a local SQLite file and sends messages to a PostgreSQL server. This matters on hosted PostgreSQL services that expose the `public` schema through an HTTP API: whatsmeow creates its session tables there, while the `wa_<phone>` schemas are not exposed by default.
+
 Message has no account field: the account is process context, and storage provides the namespace. Two accounts may store different messages with the same ID. Separate SQLite session files in the same directory still use the same account filename for a given phone; use separate directories when independent stores are required.
 
 The whatsmeow_* tables store keys, sessions, contacts and application state, not a message archive. This package writes extracted messages to the selected account store.
@@ -284,7 +289,7 @@ CI runs the check task on Ubuntu and Windows. tests/test_architecture.py enforce
 
 ## Versioning
 
-Releases follow Semantic Versioning 2.0.0 and are recorded in [CHANGELOG.md](CHANGELOG.md). Version 0.1.0 is the initial alpha release; the public API may change during 0.x development.
+Releases follow Semantic Versioning 2.0.0 and are recorded in [CHANGELOG.md](CHANGELOG.md). Version 0.1.0 was the initial alpha release; the public API may change during 0.x development.
 
 ## Unofficial API
 
