@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets and runtime data: the neonize session is a WhatsApp credential
+.env
+/session.db*
+*.db
+*.db-*
+*.jsonl
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
