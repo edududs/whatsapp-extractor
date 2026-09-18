@@ -122,3 +122,18 @@ def test_an_explicit_config_beats_the_environment(
     other.write_text('account = "5511900000009"\n', encoding="utf-8")
     monkeypatch.setenv("EXTRACTOR_CONFIG", str(config))
     assert Settings.load(other).account == "5511900000009"
+
+
+def test_messages_default_to_the_session_database_unless_told_otherwise(tmp_path: Path) -> None:
+    assert Settings.load(tmp_path / "none.toml").message_database == "session.db"
+    apart = Settings.load(tmp_path / "none.toml", messages_database="postgres://u:p@h/db")
+    assert apart.database == "session.db"
+    assert apart.message_database == "postgres://u:p@h/db"
+
+
+def test_a_blank_messages_database_means_the_session_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".env").write_text("EXTRACTOR_MESSAGES_DATABASE=\n", encoding="utf-8")
+    assert Settings().message_database == "session.db"

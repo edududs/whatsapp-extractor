@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     database: str = "session.db"
     """SQLite file or `postgres://` DSN shared by neonize (pairing, contacts) and the
     per-account message schemas. It holds the WhatsApp credentials."""
+    messages_database: str | None = None
+    """Where the per-account message schemas live when not in `database`, e.g. to keep
+    the WhatsApp credentials on a local SQLite file and the messages on a server."""
     account: str | None = Field(default=None, pattern=r"^[0-9]{5,15}$")
     """Phone of the paired account to run as. Optional when only one is paired."""
     watchlist: Watchlist = Watchlist()
@@ -97,6 +100,10 @@ class Settings(BaseSettings):
         if config is not None:
             overrides["config"] = config
         return cls(**overrides)  # pyright: ignore[reportArgumentType] — kwargs are validated
+
+    @property
+    def message_database(self) -> str:
+        return self.messages_database or self.database
 
     def watchlist_for(self, account: str) -> Watchlist:
         """The account's own watchlist, else the global one."""
