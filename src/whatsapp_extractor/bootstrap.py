@@ -6,14 +6,17 @@ import asyncio
 import contextlib
 import logging
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
 from neonize.aioze.client import NewAClient
+from neonize.aioze.events import OfflineSyncCompletedEv
 
 from .adapters.jsonl_store import JsonlMessageStore
 from .adapters.log_handler import log_message_extracted
 from .adapters.memory_store import InMemoryMessageStore
+from .adapters.neonize_accounts import Account, account_of, find_account
 from .adapters.neonize_source import NeonizeSource
-from .adapters.sql_store import SqlMessageStore, engine_for
+from .adapters.sql_store import SqlMessageStore, engine_for, migrate, schema_for
 from .application import (
     EventBus,
     EventHandler,
@@ -31,6 +34,16 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+class AccountRequiredError(ValueError):
+    """`run` extracts for exactly one account; `Settings.account` must say which."""
+
+
+class AccountNotPairedError(LookupError):
+    def __init__(self, phone: str) -> None:
+        super().__init__(f"account {phone} is not paired in this database; run `pair`")
+        self.phone = phone
+
+
 async def run(
     settings: Settings,
     *handlers: EventHandler[MessageExtracted],
@@ -38,20 +51,31 @@ async def run(
     accepts: MessageFilter | None = None,
     writer: MessageWriter | None = None,
 ) -> None:
-    """Extract with the bundled pieces, or with yours. Handlers run after the view."""
+    """Extract one account with the bundled pieces, or with yours. Handlers run after the view."""
+    if settings.account is None:
+        raise AccountRequiredError
     bus = EventBus()
     for handler in (message_view(settings.view), *handlers):
         bus.subscribe(MessageExtracted, handler)
-    source = source or NeonizeSource(NewAClient(settings.database), settings.buffer_size)
-    accepts = accepts or settings.watchlist.matches
-    async with open_writer(settings, writer) as target:
+    source = source or neonize_source(settings, settings.account)
+    accepts = accepts or settings.watchlist_for(settings.account).matches
+    async with open_writer(settings, settings.account, writer) as target:
         await extract(source, accepts, target, bus)
+
+
+def neonize_source(settings: Settings, phone: str) -> NeonizeSource:
+    account = find_account(settings.database, phone)
+    if account is None:
+        raise AccountNotPairedError(phone)
+    client = NewAClient(settings.database, jid=account.device)
+    return NeonizeSource(client, settings.buffer_size)
 
 
 @contextlib.asynccontextmanager
 async def open_writer(
-    settings: Settings, given: MessageWriter | None
+    settings: Settings, account: str, given: MessageWriter | None
 ) -> AsyncGenerator[MessageWriter]:
+    """The account's own store: a schema, a file, or nothing shared."""
     if given is not None:
         yield given
         return
@@ -59,15 +83,57 @@ async def open_writer(
         case StoreKind.MEMORY:
             yield InMemoryMessageStore()
         case StoreKind.JSONL:
-            yield JsonlMessageStore(settings.jsonl_path)
+            yield JsonlMessageStore(settings.jsonl_path_for(account))
         case StoreKind.SQL:
-            engine = engine_for(settings.database)
+            schema = schema_for(account)
+            engine = engine_for(settings.database, schema)
             try:
-                store = SqlMessageStore(engine)
-                await store.create_schema()
-                yield store
+                await migrate(engine, schema)
+                yield SqlMessageStore(engine)
             finally:
                 await engine.dispose()
+
+
+async def migrate_account(settings: Settings, account: str) -> None:
+    schema = schema_for(account)
+    engine = engine_for(settings.database, schema)
+    try:
+        await migrate(engine, schema)
+    finally:
+        await engine.dispose()
+
+
+class Pairing:
+    """Pair one more phone into the database. neonize prints the QR code on the terminal.
+
+    `run` returns when the initial sync completes; `account` is known as soon as the phone
+    is linked, so a Ctrl+C after that still leaves a usable account.
+    """
+
+    def __init__(self, settings: Settings) -> None:
+        self._client = NewAClient(settings.database, uuid=f"pairing-{uuid4().hex}")
+
+    @property
+    def account(self) -> Account | None:
+        me = self._client.me
+        return account_of(me) if me is not None else None
+
+    async def run(self) -> None:
+        synced = asyncio.Event()
+
+        async def on_synced(_: NewAClient, __: OfflineSyncCompletedEv) -> None:
+            synced.set()
+
+        self._client.event(OfflineSyncCompletedEv)(on_synced)
+        connection = await self._client.connect()
+        waiter = asyncio.ensure_future(synced.wait())
+        try:
+            await asyncio.wait({waiter, connection}, return_when=asyncio.FIRST_COMPLETED)
+            if connection.done():
+                connection.result()  # surfaces the connection error, if any
+        finally:
+            waiter.cancel()
+            connection.cancel()  # tells neonize to stop its worker thread
 
 
 def message_view(view: ViewKind) -> EventHandler[MessageExtracted]:
@@ -94,9 +160,4 @@ def configure_logging() -> None:
         handler, log_format = RichHandler(), "%(message)s"
     # force: neonize calls basicConfig on import, which would turn this one into a no-op.
     logging.basicConfig(level=logging.INFO, format=log_format, handlers=[handler], force=True)
-
-
-def main() -> None:
-    configure_logging()
-    with contextlib.suppress(KeyboardInterrupt):
-        asyncio.run(run(Settings()))
+    logging.getLogger("alembic").setLevel(logging.WARNING)

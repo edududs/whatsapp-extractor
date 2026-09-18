@@ -1,3 +1,3 @@
-from .bootstrap import main
+from .cli import app
 
-main()
+app()
