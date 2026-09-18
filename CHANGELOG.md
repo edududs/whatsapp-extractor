@@ -7,9 +7,11 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
+## [0.2.1] - 2026-09-18
 
-- `run` logs the effective watchlist when it starts.
+### Fixed
+
+- A watchlist that matches nothing no longer looks like a dead connection: `run` logs the effective watchlist when it starts.
 
 ## [0.2.0] - 2026-09-18
 
@@ -42,6 +44,7 @@ and releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Domain, adapter, extraction and architecture tests with strict linting and type checks.
 - Ubuntu and Windows continuous integration.
 
-[Unreleased]: https://github.com/edududs/whatsapp-extractor/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/edududs/whatsapp-extractor/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/edududs/whatsapp-extractor/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/edududs/whatsapp-extractor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/edududs/whatsapp-extractor/tree/v0.1.0

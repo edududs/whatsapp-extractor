@@ -11,7 +11,7 @@ The domain is specific to WhatsApp: Jid, ChatKind and related models describe Wh
 Python 3.13 or later is required for asyncio.Queue.shutdown. Development uses uv. The package is not published on PyPI; install the tagged release from Git:
 
 ```sh
-uv add "whatsapp-extractor[rich] @ git+https://github.com/edududs/whatsapp-extractor@v0.2.0"
+uv add "whatsapp-extractor[rich] @ git+https://github.com/edududs/whatsapp-extractor@v0.2.1"
 ```
 
 Optional extras:
