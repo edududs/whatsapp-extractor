@@ -17,7 +17,7 @@ Before 1.0 the public contract still moves: `MINOR` adds features and may change
 body = """
 
 {% if version -%}
-## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d", timezone="America/Sao_Paulo") }}
 {% else -%}
 ## [Unreleased]
 {% endif -%}
@@ -56,6 +56,8 @@ sort_commits = "oldest"
 commit_parsers = [
     { message = "^chore\\(release\\)", skip = true },
     { message = "^chore: release", skip = true },
+    # Landed as feat, but it fixes a run that looked dead when nothing matched the watchlist.
+    { sha = "94ba65ff79ae77cf0c6ca4e64358384ce0db3392", group = "<!-- 1 -->Fixed" },
     { message = "^feat", group = "<!-- 0 -->Added" },
     { message = "^fix", group = "<!-- 1 -->Fixed" },
     { message = "^perf", group = "<!-- 2 -->Performance" },

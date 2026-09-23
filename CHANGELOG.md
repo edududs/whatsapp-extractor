@@ -9,20 +9,32 @@ commit history: do not edit it by hand.
 Before 1.0 the public contract still moves: `MINOR` adds features and may change the contract,
 `PATCH` fixes.
 
+## [Unreleased]
+
+### Documentation
+
+- Rewrite the README as an overview and record the design decisions
+- Render sample views for the README
+
+### Infrastructure
+
+- Test Python 3.13 and 3.14 with a coverage floor
+- Generate the changelog and releases from the commits
+
 ## [0.2.1] - 2026-09-18
 
-### Added
+### Fixed
 
 - Log the effective watchlist when a run starts
 
-## [0.2.0] - 2026-09-18
+## [0.2.0] - 2026-09-17
 
 ### Added
 
 - **cli:** List the groups an account belongs to
 - **config:** Allow messages to live apart from the session database
 
-## [0.1.0] - 2026-09-18
+## [0.1.0] - 2026-09-17
 
 ### Added
 
@@ -53,6 +65,7 @@ Before 1.0 the public contract still moves: `MINOR` adds features and may change
 - Check formatting, types and tests on Linux and Windows
 - Exclude local directories from source distributions
 
+[Unreleased]: https://github.com/edududs/whatsapp-extractor/compare/v0.2.1...HEAD
 [0.2.1]: https://github.com/edududs/whatsapp-extractor/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/edududs/whatsapp-extractor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/edududs/whatsapp-extractor/tree/v0.1.0
