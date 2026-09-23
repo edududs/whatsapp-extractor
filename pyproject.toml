@@ -9,6 +9,7 @@ authors = [{ name = "Eduardo Lima", email = "dudulj15@gmail.com" }]
 keywords = ["whatsapp", "neonize", "whatsmeow", "hexagonal-architecture", "asyncio", "event-bus"]
 classifiers = [
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
     "Framework :: AsyncIO",
     "License :: OSI Approved :: MIT License",
@@ -29,6 +30,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/edududs/whatsapp-extractor"
 Repository = "https://github.com/edududs/whatsapp-extractor"
+Documentation = "https://github.com/edududs/whatsapp-extractor/blob/main/docs/reference.md"
 Changelog = "https://github.com/edududs/whatsapp-extractor/blob/main/CHANGELOG.md"
 Issues = "https://github.com/edududs/whatsapp-extractor/issues"
 
@@ -52,6 +54,7 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=8",
     "pytest-asyncio>=1.2",
+    "pytest-cov>=7.0.0",
     "ruff>=0.16.8",
     "whatsapp-extractor[rich,testing]",
 ]
@@ -67,6 +70,16 @@ packages = ["src/whatsapp_extractor"]
 pythonpath = ["tests"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--cov --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["whatsapp_extractor"]
+# Alembic loads revision scripts by path, outside the import system coverage traces.
+omit = ["*/migrations/*", "*/__main__.py"]
+
+[tool.coverage.report]
+fail_under = 85
+skip_covered = true
 
 [tool.ruff]
 line-length = 100

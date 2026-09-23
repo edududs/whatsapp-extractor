@@ -7,15 +7,29 @@ on:
 
 jobs:
   check:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        python: ["3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          python-version: ${{ matrix.python }}
       - run: uv sync --all-extras
+      # Same gate as `uv run poe fix`, but it reports instead of rewriting files.
       - run: uv run poe check
+      # The test task measures coverage and fails under the floor set in pyproject.toml;
+      # this only publishes the table on the run's summary page.
+      - name: Report coverage
+        if: always()
+        shell: bash
+        run: |
+          echo '### Coverage (${{ matrix.os }}, Python ${{ matrix.python }})' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          uv run coverage report >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

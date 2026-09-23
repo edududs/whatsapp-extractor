@@ -24,3 +24,8 @@ wheels/
 # Local workspace directories; keep CI configuration versioned
 /.*/
 !/.github/
+
+# Coverage data
+.coverage
+.coverage.*
+htmlcov/
